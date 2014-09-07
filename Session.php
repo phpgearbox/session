@@ -149,7 +149,7 @@ class Session
 				setcookie
 				(
 					$name,
-					$encrypter->encrypt($session->getId()),
+					$encrypter->encrypt(self::$sessionStore->getId()),
 					$expire,
 					$path,
 					$domain,
@@ -162,7 +162,7 @@ class Session
 				setcookie
 				(
 					$name,
-					$session->getId(),
+					self::$sessionStore->getId(),
 					$expire,
 					$path,
 					$domain,
@@ -173,13 +173,10 @@ class Session
 		}
 		
 		// Start the session
-		$session->start();
+		self::$sessionStore->start();
 
 		// Save the session on shutdown
-		register_shutdown_function(function() use ($session)
-		{
-			$session->save();
-		});
+		register_shutdown_function([self::$sessionStore, 'save']);
 
 		// Alias ourselves if there isn't already a session class
 		if (!class_exists('\Session'))
