@@ -1,0 +1,19 @@
+{
+	"name": "gears/session",
+	"description": "Laravel Sessions Standalone",
+	"homepage": "https://github.com/phpgearbox/session",
+	"keywords": ["laravel", "sessions", "standalone"],
+	"license": "MIT",
+	"require":
+	{
+		"illuminate/session": "*",
+		"illuminate/database": "*"
+	},
+	"autoload":
+	{
+		"psr-4":
+		{
+			"Gears\\": ""
+		}
+	}
+}
