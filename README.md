@@ -1,0 +1,4 @@
+session
+=======
+
+Laravel Sessions Standalone
