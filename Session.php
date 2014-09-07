@@ -62,17 +62,17 @@ class Session
 	 *
 	 * $name - The name used for the session cookie.
 	 *
-	 * $expire - Yes this is a `Session` manager. Strictly speaking a session
-	 * should end once the brwoser has closed. However some setups may require
-	 * the session to stay open for a period of time after the brower has
-	 * closed. This is passed directly to the setcookie method.
+	 * $lifetime - This is the number of seconds that a session is valid for on
+	 * the server side before the garbage collection runs.
+	 *
+	 * $path - This is passed directly to setcookie.
 	 * http://php.net/manual/en/function.setcookie.php
 	 *
-	 * $path - This is passwed directly to setcookie.
+	 * $domain - This is passed directly to setcookie.
+	 * http://php.net/manual/en/function.setcookie.php
 	 *
-	 * $domain - This is passwed directly to setcookie.
-	 *
-	 * $secure - This is passwed directly to setcookie.
+	 * $secure - This is passed directly to setcookie.
+	 * http://php.net/manual/en/function.setcookie.php
 	 *
 	 * $key - If provided we will use this to encrypt the cookies.
 	 *
@@ -83,7 +83,7 @@ class Session
 	 * -------------------------------------------------------------------------
 	 * void
 	 */
-	public static function install($dbconfig, $table = 'sessions', $name = 'gears-session', $expire = 0, $path = '/', $domain = null, $secure = null, $key = null, $cipher = null)
+	public static function install($dbconfig, $table = 'sessions', $name = 'gears-session', $lifetime = 120, $path = '/', $domain = null, $secure = null, $key = null, $cipher = null)
 	{
 		// Setup the database connection
 		$capsule = new Capsule;
@@ -102,8 +102,10 @@ class Session
 		}
 
 		// Create the session store
-		$handler = new DatabaseSessionHandler($db, $table);
-		self::$sessionStore = new Store($name, $handler);
+		self::$sessionStore = new Store($name, new DatabaseSessionHandler($db, $table));
+
+		// Run the garbage collection
+		self::$sessionStore->getHandler()->gc($lifetime);
 
 		// Setup the encrypter
 		if (!empty($key))
@@ -122,18 +124,18 @@ class Session
 			// Do we have an encrypter?
 			if (isset($encrypter))
 			{
-				// We do so lets try decrypting the coookie
+				// We do so lets try decrypting the cookie
 				try
 				{
-					self::$sessionStore->setId
-					(
-						$encrypter->decrypt($_COOKIE[$name])
-					);
+					$id = $encrypter->decrypt($_COOKIE[$name]);
 				}
 				catch (\Illuminate\Encryption\DecryptException $e)
 				{
-					// Do nothing, don't set the session id
+					$id = false;
 				}
+
+				// If we have an id set it
+				if ($id) self::$sessionStore->setId($id);
 			}
 			else
 			{
@@ -150,7 +152,7 @@ class Session
 				(
 					$name,
 					$encrypter->encrypt(self::$sessionStore->getId()),
-					$expire,
+					0,
 					$path,
 					$domain,
 					$secure,
@@ -163,7 +165,7 @@ class Session
 				(
 					$name,
 					self::$sessionStore->getId(),
-					$expire,
+					0,
 					$path,
 					$domain,
 					$secure,
