@@ -125,7 +125,7 @@ class Session
 				// We do so lets try decrypting the coookie
 				try
 				{
-					$session->setId
+					self::$sessionStore->setId
 					(
 						$encrypter->decrypt($_COOKIE[$name])
 					);
@@ -138,7 +138,7 @@ class Session
 			else
 			{
 				// Less secure but easier to setup
-				$session->setId($_COOKIE[$name]);
+				self::$sessionStore->setId($_COOKIE[$name]);
 			}
 		}
 		else
