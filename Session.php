@@ -28,6 +28,35 @@ class Session
 	private static $sessionStore = null;
 
 	/**
+	 * Property: expired
+	 * =========================================================================
+	 * We have added in some extra functionality. We can now easily check to
+	 * see if the session has expired. If it has we reset the cookie with a
+	 * new id, etc.
+	 */
+	private static $expired = false;
+
+	/**
+	 * Method: hasExpired
+	 * =========================================================================
+	 * Pretty simple, if the session has previously been set and now has been
+	 * expired by means of garbage collection on the server, this will return
+	 * true, otherwise false.
+	 *
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * n/a
+	 *
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * boolean
+	 */
+	public static function hasExpired()
+	{
+		return self::$expired;
+	}
+
+	/**
 	 * Method: install
 	 * =========================================================================
 	 * To setup the Laravel Session, call this method with at the very least a
@@ -127,23 +156,38 @@ class Session
 				// We do so lets try decrypting the cookie
 				try
 				{
-					$id = $encrypter->decrypt($_COOKIE[$name]);
+					$cookie_id = $encrypter->decrypt($_COOKIE[$name]);
 				}
 				catch (\Illuminate\Encryption\DecryptException $e)
 				{
-					$id = false;
+					$cookie_id = null;
 				}
-
-				// If we have an id set it
-				if ($id) self::$sessionStore->setId($id);
 			}
 			else
 			{
 				// Less secure but easier to setup
-				self::$sessionStore->setId($_COOKIE[$name]);
+				$cookie_id = $_COOKIE[$name];
 			}
+
+			// Does the session exist in the db?
+			$session = (object) $db->table($table)->find($cookie_id);
+			if (isset($session->payload))
+			{
+				// Set the id of the session
+				self::$sessionStore->setId($cookie_id);
+			}
+			else
+			{
+				// Set the expired flag
+				self::$expired = true;
+
+				// NOTE: We do not need to set the id here.
+				// As it has already been set by the constructor of the Store.
+			}				
 		}
-		else
+
+		// Set / reset the session cookie
+		if (!isset($_COOKIE[$name]) || self::$expired)
 		{
 			// Do we have an encrypter?
 			if (isset($encrypter))
