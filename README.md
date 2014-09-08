@@ -44,7 +44,7 @@ Gears\Session::install
 );
 ```
 
-And thats it, for more configuration options see the class comments at
+And thats it, for more configuration options see the class comments at:
 https://github.com/phpgearbox/session/blob/master/Session.php
 
 Now you can use code like the following:

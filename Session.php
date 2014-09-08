@@ -16,7 +16,6 @@ namespace Gears;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Session\Store;
 use Illuminate\Session\DatabaseSessionHandler;
-use Illuminate\Encryption\Encrypter;
 
 class Session
 {
@@ -26,6 +25,13 @@ class Session
 	 * This is where we store a copy of the actual Laravel Session Store.
 	 */
 	private static $sessionStore = null;
+
+	/**
+	 * Property: cookie_config
+	 * =========================================================================
+	 * This is set by the install method and used by the regenerate method.
+	 */
+	private static $cookie_config = array();
 
 	/**
 	 * Property: expired
@@ -54,6 +60,42 @@ class Session
 	public static function hasExpired()
 	{
 		return self::$expired;
+	}
+
+	/**
+	 * Method: regenerate
+	 * =========================================================================
+	 * When the session id is regenerated we need to reset the cookie.
+	 *
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * $destroy - If set to true the previous session will be deleted.
+	 *
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * boolean
+	 */
+	public static function regenerate($destroy = false)
+	{
+		if (self::$sessionStore->regenerate($destroy))
+		{
+			setcookie
+			(
+				self::$sessionStore->getName(),
+				self::$sessionStore->getId(),
+				0,
+				self::$cookie_config['path'],
+				self::$cookie_config['domain'],
+				self::$cookie_config['secure'],
+				true
+			);
+
+			return  true;
+		}
+		else
+		{
+			return false;
+		}
 	}
 
 	/**
@@ -103,16 +145,11 @@ class Session
 	 * $secure - This is passed directly to setcookie.
 	 * http://php.net/manual/en/function.setcookie.php
 	 *
-	 * $key - If provided we will use this to encrypt the cookies.
-	 *
-	 * $cipher - You may optionaly also specfiy what cipher to use.
-	 * For more info see: http://laravel.com/docs/security#encryption
-	 *
 	 * Returns:
 	 * -------------------------------------------------------------------------
 	 * void
 	 */
-	public static function install($dbconfig, $table = 'sessions', $name = 'gears-session', $lifetime = 120, $path = '/', $domain = null, $secure = null, $key = null, $cipher = null)
+	public static function install($dbconfig, $table = 'sessions', $name = 'gears-session', $lifetime = 120, $path = '/', $domain = null, $secure = null)
 	{
 		// Setup the database connection
 		$capsule = new Capsule;
@@ -136,38 +173,11 @@ class Session
 		// Run the garbage collection
 		self::$sessionStore->getHandler()->gc($lifetime);
 
-		// Setup the encrypter
-		if (!empty($key))
-		{
-			$encrypter = new Encrypter($key);
-			
-			if (!empty($cipher))
-			{
-				$encrypter->setCipher($cipher);
-			}
-		}
-
 		// Check for our session cookie
 		if (isset($_COOKIE[$name]))
 		{
-			// Do we have an encrypter?
-			if (isset($encrypter))
-			{
-				// We do so lets try decrypting the cookie
-				try
-				{
-					$cookie_id = $encrypter->decrypt($_COOKIE[$name]);
-				}
-				catch (\Illuminate\Encryption\DecryptException $e)
-				{
-					$cookie_id = null;
-				}
-			}
-			else
-			{
-				// Less secure but easier to setup
-				$cookie_id = $_COOKIE[$name];
-			}
+			// Grab the session id from the cookie
+			$cookie_id = $_COOKIE[$name];
 
 			// Does the session exist in the db?
 			$session = (object) $db->table($table)->find($cookie_id);
@@ -189,35 +199,26 @@ class Session
 		// Set / reset the session cookie
 		if (!isset($_COOKIE[$name]) || self::$expired)
 		{
-			// Do we have an encrypter?
-			if (isset($encrypter))
-			{
-				setcookie
-				(
-					$name,
-					$encrypter->encrypt(self::$sessionStore->getId()),
-					0,
-					$path,
-					$domain,
-					$secure,
-					true
-				);
-			}
-			else
-			{
-				setcookie
-				(
-					$name,
-					self::$sessionStore->getId(),
-					0,
-					$path,
-					$domain,
-					$secure,
-					true
-				);
-			}
+			setcookie
+			(
+				$name,
+				self::$sessionStore->getId(),
+				0,
+				$path,
+				$domain,
+				$secure,
+				true
+			);
 		}
 		
+		// Save the cookie config
+		self::$cookie_config =
+		[
+			'path' => $path,
+			'domain' => $domain,
+			'secure' => $secure
+		];
+
 		// Start the session
 		self::$sessionStore->start();
 
