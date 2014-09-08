@@ -2,9 +2,9 @@ The Session Gear
 ================================================================================
 **Laravel Sessions Standalone**
 
-Okay so by now hopefully you have heard of [Laravel]("http://laravel.com/"),
+Okay so by now hopefully you have heard of [Laravel](http://laravel.com/),
 the PHP framework that just makes things easy. So first things first full credit
-goes to [Taylor Otwell]("https://github.com/taylorotwell") for the Session API.
+goes to [Taylor Otwell](https://github.com/taylorotwell) for the Session API.
 
 How to Install
 --------------------------------------------------------------------------------
@@ -126,7 +126,7 @@ So now for the why?
 --------------------------------------------------------------------------------
 While laravel is so awesomely cool and great. If you want to pull a feature out
 and use it in another project it can become difficult. Firstly you have to have
-an innate understanding of the [IoC Container]("http://laravel.com/docs/ioc").
+an innate understanding of the [IoC Container](http://laravel.com/docs/ioc).
 
 You then find that this class needs that class which then requires some other
 config variable that is normally present in the IoC when run inside a normal
