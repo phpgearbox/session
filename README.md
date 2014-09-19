@@ -1,5 +1,11 @@
 The Session Gear
 ================================================================================
+[![Latest Stable Version](https://poser.pugx.org/gears/session/v/stable.svg)](https://packagist.org/packages/gears/session)
+[![Total Downloads](https://poser.pugx.org/gears/session/downloads.svg)](https://packagist.org/packages/gears/session)
+[![Latest Unstable Version](https://poser.pugx.org/gears/session/v/unstable.svg)](https://packagist.org/packages/gears/session)
+[![License](https://poser.pugx.org/gears/session/license.svg)](https://packagist.org/packages/gears/session)
+[![Build Status](https://travis-ci.org/phpgearbox/session.svg?branch=master)](https://travis-ci.org/phpgearbox/session)
+
 **Laravel Sessions Standalone**
 
 Okay so by now hopefully you have heard of [Laravel](http://laravel.com/),
