@@ -4,16 +4,22 @@
 	"homepage": "https://github.com/phpgearbox/session",
 	"keywords": ["laravel", "sessions", "standalone"],
 	"license": "MIT",
+	"autoload":
+	{
+		"psr-4":
+		{
+			"Gears\\": "src"
+		}
+	},
 	"require":
 	{
 		"illuminate/session": "*",
 		"illuminate/database": "*"
 	},
-	"autoload":
+	"require-dev":
 	{
-		"psr-4":
-		{
-			"Gears\\": ""
-		}
+		"phpunit/phpunit": "*",
+		"codegyre/robo": "*",
+		"guzzlehttp/guzzle": "*"
 	}
 }
