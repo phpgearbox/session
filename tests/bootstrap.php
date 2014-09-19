@@ -11,18 +11,22 @@
 // -----------------------------------------------------------------------------
 ////////////////////////////////////////////////////////////////////////////////
 
-// Include the robo file so we know what port
-// the built in php server is running on.
+/* 
+ * Include the robo file so we know what port
+ * the built in php server is running on.
+ */
 require(__DIR__.'/../RoboFile.php');
 
-// Create the base Guzzle Client we will use for all our acceptance testing.
-// NOTE: We return a new client each time so that we don't have any chance of
-// cross contamination
+/*
+ * Create the base Guzzle Client we will use for all our acceptance testing.
+ * NOTE: We return a new client each time so that we don't have any chance of
+ * cross contamination.
+ */
 function GuzzleTester()
 {
 	return new GuzzleHttp\Client
 	([
 		'base_url' => 'http://127.0.0.1:'.RoboFile::$serverPort,
-		'cookie' => true
+		'defaults' => ['cookies' => true]
 	]);
 }

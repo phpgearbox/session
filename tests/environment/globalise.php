@@ -11,19 +11,35 @@
 // -----------------------------------------------------------------------------
 ////////////////////////////////////////////////////////////////////////////////
 
-// Load the composer autoloader
-require('../../vendor/autoload.php');
+namespace FooBar
+{
+	function test()
+	{
+		// Create a new session object.
+		// Note how we are inside another namespace.
+		$session = new \Gears\Session
+		([
+			'driver'    => 'sqlite',
+			'database'  => '/tmp/gears-session-test.db',
+			'prefix'    => ''
+		]);
 
-// Create a new session object
-$session = new Gears\Session
-([
-	'driver'    => 'sqlite',
-	'database'  => '/tmp/gears-session-test.db',
-	'prefix'    => ''
-]);
+		// Globalise the session
+		$session->globalise();
+	}
+}
 
-// Add a value to the session
-$session->push('foo', 'bar');
+namespace
+{
+	// Load the composer autoloader
+	require('../../vendor/autoload.php');
 
-// Output the session as json for testing
-echo json_encode($session->all());
+	// Call the FooBar\test function to create the session
+	FooBar\test();
+
+	// Note how we have access to the session api globally
+	Session::put('global', true);
+	
+	// Output the session as json for testing
+	echo json_encode(Session::all());
+}

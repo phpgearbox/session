@@ -15,9 +15,37 @@ use Illuminate\Database\Capsule\Manager as LaravelDb;
 
 class SessionTest extends PHPUnit_Framework_TestCase
 {
-	public function testDefaultSession()
+	/**
+	 * Property: $db
+	 * =========================================================================
+	 * We store an instance of Illuminate\Database\Connection here.
+	 */
+	protected $db;
+
+	/**
+	 * Property: $http
+	 * =========================================================================
+	 * We store an instance of GuzzleHttp\Client here.
+	 */
+	protected $http;
+
+	/**
+	 * Method: setUp
+	 * =========================================================================
+	 * This is run before our tests. It creates the above properties.
+	 *
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * n/a
+	 *
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * void
+	 */
+	protected function setUp()
 	{
 		// Create a blank sqlite db
+		// Laravel complains if the actual file does not exist.
 		touch('/tmp/gears-session-test.db');
 
 		// Grab a laravel db connection
@@ -28,47 +56,93 @@ class SessionTest extends PHPUnit_Framework_TestCase
 			'database'  => '/tmp/gears-session-test.db',
 			'prefix'    => ''
 		]);
-		$db = $capsule->getConnection('default');
+		$this->db = $capsule->getConnection('default');
 
 		// Get a new guzzle client
-		$http = GuzzleTester();
+		$this->http = GuzzleTester();
+	}
 
+	/**
+	 * Method: testDefaultSession
+	 * =========================================================================
+	 * This test simply checks to make sure the basics are working.
+	 * Please see ./tests/environment/index.php for it's counterpart.
+	 *
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * n/a
+	 *
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * void
+	 */
+	public function testDefaultSession()
+	{
 		// Make an intial request
-		$response = $http->get();
-
-		print_r($response->json());
+		$response = $this->http->get();
 
 		// Check to see if the db schema is valid
-		$this->assertTrue($db->getSchemaBuilder()->hasTable('sessions'));
+		$schema = $this->db->getSchemaBuilder();
+		$this->assertTrue($schema->hasTable('sessions'));
 
-		// THE FOLLOWING ARE COMMENTED OUT UNTILL LARAVEL FIX SQLITE BUG
-		//$this->assertTrue($db->getSchemaBuilder()->hasColumn('sessions', 'id'));
-		//$this->assertTrue($db->getSchemaBuilder()->hasColumn('sessions', 'payload'));
-		//$this->assertTrue($db->getSchemaBuilder()->hasColumn('sessions', 'last_activity'));
-
-		// TODO: Add more checks of the db schema, like column types, etc
+		// NOTE: The following 3 assertions fail due to a bug
+		// in the laravel code. Hence commented out for now.
+		//$this->assertTrue($schema->hasColumn('sessions', 'id'));
+		//$this->assertTrue($schema->hasColumn('sessions', 'payload'));
+		//$this->assertTrue($schema->hasColumn('sessions', 'last_activity'));
 
 		// Check for the session cookie
-		$this->assertContains
-		(
-			'gears-session',
-			$response->getHeader('Set-Cookie', true)[0]
-		);
-
-		// Check for the session csrf value
-		$this->assertArrayHasKey('_token', $response->json());
+		$headers = $response->getHeader('Set-Cookie', true);
+		$this->assertContains('gears-session', $headers[0]);
 
 		// Check that we have only one bar
 		$this->assertEquals(['bar'], $response->json()['foo']);
 
 		// Make a new request
-		$response = $http->get();
+		$response = $this->http->get();
 
-		print_r($response->json());
-
-		// Now we should have 2 bars
+		// Now we should have 2 bars - this proves the session is working
 		$this->assertEquals(['bar', 'bar'], $response->json()['foo']);
+	}
 
+	/**
+	 * Method: testGlobalise
+	 * =========================================================================
+	 * This test checks that the globalise functionality works as expected.
+	 * Please see ./tests/environment/globalise.php for it's counterpart.
+	 *
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * n/a
+	 *
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * void
+	 */
+	public function testGlobalise()
+	{
+		// Make a new request
+		$response = $this->http->get('/globalise.php');
+
+		// Check for the global key
+		$this->assertArrayHasKey('global', $response->json());
+	}
+
+	/**
+	 * Method: tearDown
+	 * =========================================================================
+	 * This is run after all our tests and removes the test sqlite db.
+	 *
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * n/a
+	 *
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * void
+	 */
+	protected function tearDown()
+	{
 		// Clean up, delete the tmp db
 		unlink('/tmp/gears-session-test.db');
 	}
