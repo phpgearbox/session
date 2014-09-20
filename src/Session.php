@@ -98,7 +98,7 @@ class Session
 	 * =========================================================================
 	 * To setup the Laravel Session, call this method with at the very least a
 	 * db connection config array. We explicity use the Database Session Handler
-	 * provided by Laravel. This package current does not cater for all the
+	 * provided by Laravel. This package currently does not cater for all the
 	 * other session drivers that Laravel normally supports.
 	 *
 	 * Example usage:
@@ -167,9 +167,10 @@ class Session
 		}
 
 		// Make sure we have a sessions table
-		if (!$this->dbConnection->getSchemaBuilder()->hasTable($this->table))
+		$schema = $this->dbConnection->getSchemaBuilder();
+		if (!$schema->hasTable($this->table))
 		{
-			$this->dbConnection->getSchemaBuilder()->create($this->table, function($t)
+			$schema->create($this->table, function($t)
 			{
 				$t->string('id')->unique();
 				$t->text('payload');

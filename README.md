@@ -1,10 +1,9 @@
 The Session Gear
 ================================================================================
+[![Build Status](https://travis-ci.org/phpgearbox/session.svg?branch=master)](https://travis-ci.org/phpgearbox/session)
 [![Latest Stable Version](https://poser.pugx.org/gears/session/v/stable.svg)](https://packagist.org/packages/gears/session)
 [![Total Downloads](https://poser.pugx.org/gears/session/downloads.svg)](https://packagist.org/packages/gears/session)
-[![Latest Unstable Version](https://poser.pugx.org/gears/session/v/unstable.svg)](https://packagist.org/packages/gears/session)
 [![License](https://poser.pugx.org/gears/session/license.svg)](https://packagist.org/packages/gears/session)
-[![Build Status](https://travis-ci.org/phpgearbox/session.svg?branch=master)](https://travis-ci.org/phpgearbox/session)
 
 **Laravel Sessions Standalone**
 
@@ -27,16 +26,14 @@ You can use the Laravel Session API like so:
 // Make sure you have composer included
 require('vendor/autoload.php');
 
-// Install the gears session component
-Gears\Session::install
+// Create a new gears session.
+$session = new Gears\Session
 (
-	// This must be an array, that decribes a valid db connection.
-
+	// This must be an array, that describes a valid db connection.
+	// This array is passed directly to $capsule->addConnection
 	// For more info on this see:
 	// http://laravel.com/docs/database AND
 	// https://github.com/laravel/framework/tree/master/src/Illuminate/Database
-
-	// This array is passed directly to $capsule->addConnection
 	[
 		'driver'    => 'mysql',
 		'host'      => 'localhost',
@@ -48,10 +45,10 @@ Gears\Session::install
 		'prefix'    => '',
 	]
 );
-```
 
-And thats it, for more configuration options see the class comments at:
-https://github.com/phpgearbox/session/blob/master/Session.php
+// Next you will probably want to make the session object global.
+$session->globalise();
+```
 
 Now you can use code like the following:
 
@@ -103,7 +100,7 @@ Session::keep(array('username', 'email'));
 For more info on the Session API it's self see:
 http://laravel.com/docs/session
 
-*NOTE: While the Laravel Session API does provide support for many diffrent
+*NOTE: While the Laravel Session API does provide support for many different
 drivers. This package only supports the database driver (for now).*
 
 **WARINING: Do not use the built in native PHP session 
@@ -111,8 +108,8 @@ functions and / or the global $_SESSION array**
 
 Our Extra Method: hasExpired
 --------------------------------------------------------------------------------
-To my current knowledge of laravel, there is no built in way to work out if a
-Session has been set but then expired. So in a normal laravel app if you wanted
+To my current knowledge of Laravel, there is no built in way to work out if a
+Session has been set but then expired. So in a normal Laravel app if you wanted
 to display a "Your Session has expired!" message you would need to do some
 custom filters or something... see:
 
@@ -140,7 +137,7 @@ Laravel App but in your case you haven't defined it and don't really want
 to define that value because it makes no sense in your lets say *legacy*
 application.
 
-Perfect example is when I tried to pull the session API out to use in wordpress.
+Perfect example is when I tried to pull the session API out to use in WordPress.
 It wanted to know about a ```booted``` method, which I think comes from
 ```Illuminate\Foundation\Application```. At this point in time I already had to
 add various other things into the IoC to make it happy and it was the last straw
