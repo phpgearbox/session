@@ -13,13 +13,13 @@
 	},
 	"require":
 	{
-		"illuminate/session": "*",
-		"illuminate/database": "*"
+		"illuminate/session": "4.*",
+		"illuminate/database": "4.*"
 	},
 	"require-dev":
 	{
-		"phpunit/phpunit": "*",
+		"phpunit/phpunit": "4.*",
 		"codegyre/robo": "*",
-		"guzzlehttp/guzzle": "*"
+		"guzzlehttp/guzzle": "4.*"
 	}
 }
