@@ -11,32 +11,27 @@
 // -----------------------------------------------------------------------------
 ////////////////////////////////////////////////////////////////////////////////
 
+use RuntimeException;
+use Gears\Di\Container;
 use Illuminate\Database\Capsule\Manager as LaravelDb;
 use Illuminate\Session\Store;
 use Illuminate\Session\DatabaseSessionHandler;
 
-class Session
+class Session extends Container
 {
 	/**
 	 * Property: name
 	 * =========================================================================
 	 * Used to identify the session, the name of the actual session cookie.
 	 */
-	private $name = 'gears-session';
-
-	/**
-	 * Property: table
-	 * =========================================================================
-	 * The name of the database table to use for session storage.
-	 */
-	private $table = 'sessions';
+	protected $injectName;
 
 	/**
 	 * Property: lifetime
 	 * =========================================================================
 	 * The time in seconds before garbage collection is run on the server.
 	 */
-	private $lifetime = 120;
+	protected $injectLifetime;
 
 	/**
 	 * Property: path
@@ -44,7 +39,7 @@ class Session
 	 * This is passed directly to setcookie.
 	 * See: http://php.net/manual/en/function.setcookie.php
 	 */
-	private $path = '/';
+	protected $injectPath;
 
 	/**
 	 * Property: domain
@@ -52,7 +47,7 @@ class Session
 	 * This is passed directly to setcookie.
 	 * See: http://php.net/manual/en/function.setcookie.php
 	 */
-	private $domain = null;
+	protected $injectDomain;
 
 	/**
 	 * Property: secure
@@ -60,22 +55,44 @@ class Session
 	 * This is passed directly to setcookie.
 	 * See: http://php.net/manual/en/function.setcookie.php
 	 */
-	private $secure = null;
+	protected $injectSecure;
 
 	/**
-	 * Property: sessionStore
+	 * Property: dbConfig
 	 * =========================================================================
-	 * This is where we store a copy of the actual Laravel Session Store.
+	 * This is an array of configuration data that can be used to create the
+	 * dbConnection. This **must** be injected, if you do not inject your very
+	 * own dbConnection.
 	 */
-	private $sessionStore = null;
+	protected $injectDbConfig;
+
+	/**
+	 * Property: table
+	 * =========================================================================
+	 * The name of the database table to use for session storage.
+	 */
+	protected $injectTable;
 
 	/**
 	 * Property: dbConnection
 	 * =========================================================================
-	 * This is where we store a copy of \Illuminate\Database\Connection.
-	 * Or at least an object that extends: \Illuminate\Database\Connection
+	 * An instance of ```\Illuminate\Database\Connection```.
 	 */
-	private $dbConnection = null;
+	protected $injectDbConnection;
+
+	/**
+	 * Property: databaseSessionHandler
+	 * =========================================================================
+	 * An instance of ```Illuminate\Session\DatabaseSessionHandler```.
+	 */
+	protected $injectDatabaseSessionHandler;
+
+	/**
+	 * Property: sessionStore
+	 * =========================================================================
+	 * An instance of ```Illuminate\Session\Store```.
+	 */
+	protected $injectSessionStore;
 
 	/**
 	 * Property: expired
@@ -91,81 +108,83 @@ class Session
 	 * =========================================================================
 	 * This is used as part of the globalise functionality.
 	 */
-	private static $instance = null;
+	private static $instance;
 
 	/**
-	 * Method: __construct
+	 * Method: setDefaults
 	 * =========================================================================
-	 * To setup the Laravel Session, call this method with at the very least a
-	 * db connection config array. We explicity use the Database Session Handler
-	 * provided by Laravel. This package currently does not cater for all the
-	 * other session drivers that Laravel normally supports.
-	 *
-	 * Example usage:
-	 *
-	 *     new Gears\Session
-	 *     (
-	 *     		[
-	 *     			'driver'    => 'mysql',
-	 *     			'host'      => 'localhost',
-	 *     			'database'  => 'db_name',
-	 *     			'username'  => 'db_user',
-	 *     			'password'  => 'abc123',
-	 *     			'charset'   => 'utf8',
-	 *     			'collation' => 'utf8_unicode_ci',
-	 *     			'prefix'    => '',
-	 *     		]
-	 *     );
+	 * This is where we set all our defaults. If you need to customise this
+	 * container this is a good place to look to see what can be configured
+	 * and how to configure it.
+	 * 
+	 * Parameters:
+	 * -------------------------------------------------------------------------
+	 * n/a
+	 * 
+	 * Returns:
+	 * -------------------------------------------------------------------------
+	 * void
+	 */
+	protected function setDefaults()
+	{
+		$this->name = 'gears-session';
+
+		$this->table = 'sessions';
+
+		$this->lifetime = 120;
+
+		$this->path = '/';
+
+		$this->dbConnection = function()
+		{
+			if (!is_array($this->dbConfig))
+			{
+				throw new RuntimeException
+				(
+					'Invalid Database Connection Provided'
+				);
+			}
+
+			$capsule = new LaravelDb;
+			$capsule->addConnection($this->dbConfig);
+			return $capsule->getConnection('default');
+		};
+
+		$this->databaseSessionHandler = function()
+		{
+			return new DatabaseSessionHandler
+			(
+				$this->dbConnection,
+				$this->table
+			);
+		};
+
+		$this->sessionStore = function()
+		{
+			return new Store
+			(
+				$this->name,
+				$this->databaseSessionHandler
+			);
+		};
+	}
+
+	/**
+	 * Method: install
+	 * =========================================================================
+	 * Once the container has been configured. Please call this method to
+	 * install the session api into your application.
 	 *
 	 * Parameters:
 	 * -------------------------------------------------------------------------
-	 * $db - Is an array that describes a database connection. Or you supply
-	 * your own instance of \Illuminate\Database\Connection.
-	 * 
-	 * For examples of the array see:
-	 * https://github.com/laravel/laravel/blob/master/app/config/database.php
-	 *
-	 * $options - An array of other options to set. The keys of the array
-	 * reflect the names of the properties above.
+	 * - $global: If set to true we will also run globalise after setup.
 	 *
 	 * Returns:
 	 * -------------------------------------------------------------------------
 	 * void
 	 */
-	public function __construct($db, $options = array())
+	public function install($global = false)
 	{
-		// Have we been given an array of db configuration?
-		if (is_array($db))
-		{
-			// Okay so lets make our own laravel db object
-			$capsule = new LaravelDb;
-			$capsule->addConnection($db);
-			$this->dbConnection = $capsule->getConnection('default');
-		}
-
-		// Make sure `db` extends \Illuminate\Database\Connection
-		elseif (is_a($db, '\Illuminate\Database\Connection'))
-		{
-			$this->dbConnection = $db;
-		}
-
-		// Opps bail out, we can't continue without a valid db connection
-		else
-		{
-			throw new \Exception('Invalid Database Connection Provided');
-		}
-
-		// Set the rest of our config
-		// Sensible defaults have been set in the properties above
-		// So if nothing gets set here, we can continue.
-		foreach ($options as $option_key => $option_value)
-		{
-			if (isset($this->{$option_key}))
-			{
-				$this->{$option_key} = $option_value;
-			}
-		}
-
 		// Make sure we have a sessions table
 		$schema = $this->dbConnection->getSchemaBuilder();
 		if (!$schema->hasTable($this->table))
@@ -178,17 +197,6 @@ class Session
 			});
 		}
 
-		// Create the session store
-		$this->sessionStore = new Store
-		(
-			$this->name,
-			new DatabaseSessionHandler
-			(
-				$this->dbConnection,
-				$this->table
-			)
-		);
-
 		// Run the garbage collection
 		$this->sessionStore->getHandler()->gc($this->lifetime);
 
@@ -199,7 +207,11 @@ class Session
 			$cookie_id = $_COOKIE[$this->name];
 
 			// Does the session exist in the db?
-			$session = (object) $this->dbConnection->table($this->table)->find($cookie_id);
+			$session = (object) $this->dbConnection
+				->table($this->table)
+				->find($cookie_id)
+			;
+
 			if (isset($session->payload))
 			{
 				// Set the id of the session
@@ -235,6 +247,9 @@ class Session
 
 		// Save the session on shutdown
 		register_shutdown_function([$this->sessionStore, 'save']);
+
+		// Run globalise
+		if ($global) $this->globalise();
 	}
 
 	/**
@@ -264,7 +279,7 @@ class Session
 	 *
 	 * Parameters:
 	 * -------------------------------------------------------------------------
-	 * $destroy - If set to true the previous session will be deleted.
+	 * - $destroy: If set to true the previous session will be deleted.
 	 *
 	 * Returns:
 	 * -------------------------------------------------------------------------
@@ -296,26 +311,32 @@ class Session
 	/**
 	 * Method: globalise
 	 * =========================================================================
-	 * Now in a normal laravel application you can call the
-	 * session api like so:
+	 * Now in a normal laravel application you can call the session api like so:
 	 * 
-	 *     Session::push('key', 'value');
+	 * ```php
+	 * Session::push('key', 'value');
+	 * ```
 	 * 
 	 * This is because laravel has the IoC container with Service Providers and
 	 * Facades and other intresting things that work some magic to set this up
 	 * for you. Have a look in you main app.php config file and checkout the
 	 * aliases section.
 	 * 
-	 * If you want to be able to do the same in your application you need to
-	 * call this method.
+	 * If you want to be able to do the same in your
+	 * application you need to call this method.
 	 *
 	 * Parameters:
 	 * -------------------------------------------------------------------------
-	 * $alias - This is the name of the alias to create. Defaults to Session
+	 * - $alias: This is the name of the alias to create. Defaults to Session.
 	 *
 	 * Returns:
 	 * -------------------------------------------------------------------------
 	 * void
+	 * 
+	 * Throws:
+	 * -------------------------------------------------------------------------
+	 * - RuntimeException: When a class of the same name as the alias
+	 *   already exists.
 	 */
 	public function globalise($alias = 'Session')
 	{
@@ -330,7 +351,7 @@ class Session
 		if (class_exists($alias))
 		{
 			// Bail out, a class already exists with the same name.
-			throw new \Exception('Class already exists!');
+			throw new RuntimeException('Class already exists!');
 		}
 
 		// Create the alias
@@ -348,8 +369,8 @@ class Session
 	 *
 	 * Parameters:
 	 * -------------------------------------------------------------------------
-	 * $name - The name of the method to call.
-	 * $args - The argumnent array that is given to us.
+	 * - $name: The name of the method to call.
+	 * - $args: The argumnent array that is given to us.
 	 *
 	 * Returns:
 	 * -------------------------------------------------------------------------
@@ -368,22 +389,24 @@ class Session
 	 *
 	 * Parameters:
 	 * -------------------------------------------------------------------------
-	 * $name - The name of the method to call.
-	 * $args - The argumnent array that is given to us.
+	 * - $name: The name of the method to call.
+	 * - $args: The argumnent array that is given to us.
 	 *
 	 * Returns:
 	 * -------------------------------------------------------------------------
 	 * mixed
+	 * 
+	 * Throws:
+	 * -------------------------------------------------------------------------
+	 * - RuntimeException: When we have not been globalised.
 	 */
 	public static function __callStatic($name, $args)
 	{
-		// Check to see if we have been globalised
 		if (empty(self::$instance))
 		{
-			throw new \Exception('You need to run globalise first!');
+			throw new RuntimeException('You need to run globalise first!');
 		}
 
-		// Run the method from the static instance
 		return call_user_func_array([self::$instance, $name], $args);
 	}
 }

@@ -13,6 +13,7 @@
 	},
 	"require":
 	{
+		"gears/di": "*",
 		"illuminate/session": "4.*",
 		"illuminate/database": "4.*"
 	},

@@ -27,28 +27,33 @@ You can use the Laravel Session API like so:
 require('vendor/autoload.php');
 
 // Create a new gears session.
-$session = new Gears\Session
-(
-	// This must be an array, that describes a valid db connection.
-	// This array is passed directly to $capsule->addConnection
-	// For more info on this see:
-	// http://laravel.com/docs/database AND
-	// https://github.com/laravel/framework/tree/master/src/Illuminate/Database
-	[
-		'driver'    => 'mysql',
-		'host'      => 'localhost',
-		'database'  => 'db_name',
-		'username'  => 'db_user',
-		'password'  => 'abc123',
-		'charset'   => 'utf8',
-		'collation' => 'utf8_unicode_ci',
-		'prefix'    => '',
-	]
-);
+$session = new Gears\Session();
+
+// Configure the session container
+$session->dbConfig = 
+[
+	'driver'    => 'mysql',
+	'host'      => 'localhost',
+	'database'  => 'db_name',
+	'username'  => 'db_user',
+	'password'  => 'abc123',
+	'charset'   => 'utf8',
+	'collation' => 'utf8_unicode_ci',
+	'prefix'    => '',
+];
+
+// Install the session api
+$session->install();
 
 // Next you will probably want to make the session object global.
 $session->globalise();
 ```
+
+> NOTE: The dbConfig array must describe a valid db connection. This array is
+> passed directly to $capsule->addConnection For more info on this see:
+> 
+>   - http://laravel.com/docs/database
+>   - https://github.com/laravel/framework/tree/master/src/Illuminate/Database
 
 Now you can use code like the following:
 

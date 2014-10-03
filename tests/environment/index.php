@@ -15,12 +15,18 @@
 require('../../vendor/autoload.php');
 
 // Create a new session object
-$session = new Gears\Session
-([
+$session = new Gears\Session();
+
+// Configure the session object
+$session->dbConfig =
+[
 	'driver'    => 'sqlite',
 	'database'  => '/tmp/gears-session-test.db',
 	'prefix'    => ''
-]);
+];
+
+// Install the session api
+$session->install();
 
 // Add a value to the session
 $session->push('foo', 'bar');

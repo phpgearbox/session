@@ -17,12 +17,18 @@ namespace FooBar
 	{
 		// Create a new session object.
 		// Note how we are inside another namespace.
-		$session = new \Gears\Session
-		([
+		$session = new \Gears\Session();
+
+		// Configure the session object
+		$session->dbConfig =
+		[
 			'driver'    => 'sqlite',
 			'database'  => '/tmp/gears-session-test.db',
 			'prefix'    => ''
-		]);
+		];
+
+		// Install the session api
+		$session->install();
 
 		// Globalise the session
 		$session->globalise();
